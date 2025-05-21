@@ -31,7 +31,7 @@ const initDB = async () => {
         await connection.query(`
             CREATE TABLE IF NOT EXISTS User (
             User_id INT PRIMARY KEY AUTO_INCREMENT,
-            Username VARCHAR(50) NOT NULL,
+            Username VARCHAR(50) NOT NULL UNIQUE,
             Email VARCHAR(50) NOT NULL UNIQUE,
             Password VARCHAR(255) NOT NULL,
             Register_date DATE NOT NULL
@@ -85,6 +85,7 @@ const initDB = async () => {
         `);
 
         console.log("- Tables crées / chargées")
+
         // -------------------------
         // --- CRÉATION DES VUES ---
         // -------------------------
@@ -93,8 +94,9 @@ const initDB = async () => {
         await connection.query(`
             CREATE VIEW Upcoming_Events AS
             SELECT  
-                E.Event_id, 
-                E.Title, 
+                E.Event_id,
+                E.Title,
+                E.Event_description,
                 E.Event_date, 
                 E.Event_location, 
                 G.Game_name, 
@@ -200,6 +202,32 @@ const initDB = async () => {
             console.log("Trigger 'after_user_insert_log' créé.");
         }
 
+        if (!existingTriggerNames.includes('after_event_insert_log')) {
+            await connection.query(`
+                CREATE TRIGGER after_event_insert_log
+                AFTER INSERT ON Event
+                FOR EACH ROW
+                BEGIN
+                    DECLARE creator_name VARCHAR(50);
+                    SELECT Username INTO creator_name FROM User WHERE User_id = NEW.Creator_id;
+
+                    INSERT INTO Log (Log_message)
+                    VALUES (
+                        CONCAT(
+                            'Nouvel évènement créé par ', 
+                            creator_name, 
+                            ' : "', 
+                            NEW.Title, 
+                            '" (ID : ', 
+                            NEW.Event_id, 
+                            ')'
+                        )
+                    );
+                END;
+            `);
+            console.log("Trigger 'after_event_insert_log' créé.");
+        }
+
         if (!existingTriggerNames.includes('before_participation_limit_check')) {
             await connection.query(`
                 CREATE TRIGGER before_participation_limit_check
@@ -258,7 +286,7 @@ const initDB = async () => {
                     );
                 END;
             `);
-            console.log("Procédure 'CreateEvent' créée.");
+            console.log("  - Procédure 'CreateEvent' créée.");
         }
 
         if (!existingProcedureNames.includes('JoinEvent')) {
@@ -276,7 +304,7 @@ const initDB = async () => {
                     END IF;
                 END;
             `);
-            console.log("Procédure 'JoinEvent' créée.");
+            console.log("  - Procédure 'JoinEvent' créée.");
         }
 
         if (!existingProcedureNames.includes('GetRecommendedGames')) {
@@ -291,13 +319,13 @@ const initDB = async () => {
                     FROM Game
                     WHERE
                         Playtime <= max_playtime
-                        AND Min_age <= user_age
+                        AND Min_age >= user_age
                         AND Min_players <= available_players
                         AND Max_players >= available_players
                     ORDER BY Game_id DESC;
                 END;
             `);
-            console.log("Procédure 'GetRecommendedGames' créée.");
+            console.log("  - Procédure 'GetRecommendedGames' créée.");
         }
 
         console.log("- Procédures initialisés / chargés")

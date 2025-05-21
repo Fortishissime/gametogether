@@ -9,8 +9,8 @@ const {
 
 // Créer un nouvel événement
 router.post('/', async (req, res) => {
-  const { gameId, userId, location, date } = req.body;
-  const result = await add_new_event(gameId, userId, location, date);
+  const { gameId, creatorId, description, title, localisation, date } = req.body;
+  const result = await add_new_event(creatorId, title, description, date, localisation, gameId);
   if (result.success) {
     res.status(201).json({ eventId: result.eventId });
   } else {
@@ -30,10 +30,10 @@ router.delete('/:id', async (req, res) => {
 });
 
 // Rejoindre un événement
-router.post('/:id/join', async (req, res) => {
+router.post('/:id/register', async (req, res) => {
   const eventId = req.params.id;
   const { userId } = req.body;
-  const result = await join_event(eventId, userId);
+  const result = await join_event(userId, eventId);
   if (result.success) {
     res.status(200).json({ message: 'Utilisateur ajouté à l’événement' });
   } else {

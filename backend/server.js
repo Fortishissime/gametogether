@@ -1,6 +1,7 @@
 const express = require('express');
 const app = express();
 const { initDB } = require('./db');
+const cors = require('cors');
 
 // Importation des routes
 const userRoutes = require('./routes/users');
@@ -16,6 +17,15 @@ async function main() {
   console.log("\n--- Démarrage du serveur backend ---")
   console.log("\n[+] Initialisation de la base de donnée.\n")
   await initDB();
+
+  console.log("\n[+] Paramétrage des autorisations nécessaire au front-end.")
+
+  app.use(cors({
+  origin: 'http://localhost:5173', // autorise uniquement le front Vite
+  credentials: true // si tu veux autoriser les cookies / auth
+  }));
+
+  console.log("[OK] Paramétrage terminé")
 
   console.log(" \n[+] Chargement des routes API\n")
 
